@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CaliQuest V3</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#f7f8fc;font-family:Inter,system-ui,Arial,sans-serif}
+.app{max-width:480px;margin:auto;min-height:100vh;background:#11182b}
+header{padding:22px 18px 14px;background:linear-gradient(160deg,#18243d,#11182b);position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:28px}.sub{color:#aab5cc;font-size:13px;margin-top:4px}
+.card{background:#19233a;border:1px solid #2a3857;border-radius:18px;padding:16px;margin:12px 14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.stat{font-size:24px;font-weight:800}.muted{color:#9da9c0;font-size:13px}
+.progress{height:9px;background:#0d1425;border-radius:99px;overflow:hidden;margin-top:10px}.bar{height:100%;background:#69d2ff;border-radius:99px}
+nav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(480px,100%);background:#10172a;border-top:1px solid #2a3857;z-index:10}
+nav button{background:none;border:0;color:#9da9c0;padding:11px 3px;font-size:11px}nav button.active{color:#69d2ff}
+main{padding-bottom:80px}.pill{display:inline-block;padding:5px 9px;border-radius:99px;background:#263552;color:#b9c8e4;font-size:11px}
+h2{font-size:19px;margin:3px 0 12px}h3{font-size:16px;margin:0}.exercise{padding:14px 0;border-top:1px solid #2a3857}.exercise:first-child{border-top:0}
+input,select{width:100%;background:#0e1628;color:#fff;border:1px solid #344361;border-radius:10px;padding:10px;font-size:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px}.btn{border:0;border-radius:11px;padding:11px 13px;font-weight:700;background:#69d2ff;color:#08111e}.btn.secondary{background:#273653;color:#dce7f8}.btn.small{padding:8px 10px;font-size:12px}
+.notice{padding:11px;border-radius:12px;background:#182d3d;color:#bdeeff;font-size:13px;margin-top:10px}
+.good{color:#78e0a5}.warn{color:#ffd27a}.bad{color:#ff9b9b}
+.hidden{display:none}.tabs{display:flex;gap:7px;overflow:auto;margin:0 14px 8px}.tabs button{white-space:nowrap}
+.badges{display:grid;grid-template-columns:1fr 1fr;gap:9px}.badge{background:#141e32;border:1px solid #2b3956;border-radius:14px;padding:12px}.badge.lock{opacity:.45}
+label{font-size:12px;color:#aab5cc;display:block;margin-bottom:5px}
+.smalltext{font-size:12px;color:#aab5cc;line-height:1.45}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="row"><div><h1>⚡ CaliQuest V3</h1><div class="sub">Adaptive calisthenics training</div></div><div class="pill" id="levelPill">Level 1</div></div>
+</header>
+
+<main>
+<section id="home">
+  <div class="card">
+    <div class="row"><div><div class="muted">Current streak</div><div class="stat" id="streak">0 🔥</div></div><div><div class="muted">XP</div><div class="stat" id="xp">0</div></div></div>
+    <div class="progress"><div class="bar" id="xpbar" style="width:0%"></div></div>
+  </div>
+  <div class="card">
+    <div class="row"><div><h2 id="todayTitle">Today's Workout</h2><div class="muted" id="todayDesc"></div></div><span class="pill" id="phase"></span></div>
+    <div class="notice" id="smartMessage"></div>
+  </div>
+  <div class="card">
+    <h2>How your progression works</h2>
+    <div class="smalltext">
+      Hit the top of the target with clean reps → the app increases the target next time.<br><br>
+      Get close but miss the top → it repeats the same target.<br><br>
+      Miss the target by a lot → it keeps the exercise easier instead of forcing progression.
+    </div>
+  </div>
+  <div class="card">
+    <h2>Today's Exercises</h2>
+    <div id="workout"></div>
+  </div>
+</section>
+
+<section id="progress" class="hidden">
+  <div class="card"><h2>Exercise Progress</h2><div class="muted">Your targets are based on your actual logged performance.</div></div>
+  <div id="progressList"></div>
+</section>
+
+<section id="skills" class="hidden">
+  <div class="card"><h2>Skill Roadmap</h2><div class="muted">Your performance unlocks harder progressions.</div></div>
+  <div id="skillList"></div>
+</section>
+
+<section id="settings" class="hidden">
+  <div class="card"><h2>Settings</h2><button class="btn secondary" onclick="resetData()">Reset all progress</button></div>
+  <div class="card"><h2>Training rules</h2><div class="smalltext">Focus on controlled reps and good form. You do not need to train every set to failure. Rest when you need it, and stop an exercise if you have pain.</div></div>
+</section>
+</main>
+
+<nav>
+<button class="active" onclick="show('home',this)">🏠<br>Today</button>
+<button onclick="show('progress',this)">📈<br>Progress</button>
+<button onclick="show('skills',this)">🎯<br>Skills</button>
+<button onclick="show('settings',this)">⚙️<br>More</button>
+</nav>
+</div>
+
+<script>
+const days=[
+ {name:"Monday",desc:"Pull + Core",phase:"Foundation",ex:[
+  ["Pull-ups","reps",5,3,5,"pull"],
+  ["Assisted explosive pull-ups","reps",4,3,3,"explosive"],
+  ["Dips","reps",3,6,10,"dips"],
+  ["Hanging knee raises","reps",3,8,12,"knee"],
+  ["L-sit progression","sec",5,10,20,"lsit"]]},
+ {name:"Tuesday",desc:"Skills + Push • Home",phase:"Foundation",ex:[
+  ["Wall handstand","sec",5,20,30,"handstand"],
+  ["Push-ups","reps",3,10,15,"pushups"],
+  ["Pike push-ups","reps",3,6,10,"pike"],
+  ["L-sit progression","sec",5,10,20,"lsit"],
+  ["Hollow hold","sec",3,20,30,"hollow"]]},
+ {name:"Wednesday",desc:"Recovery",phase:"Recovery",ex:[
+  ["Easy walk","min",1,10,30,"walk"],
+  ["Mobility","min",1,5,10,"mobility"]]},
+ {name:"Thursday",desc:"Push + Handstand",phase:"Strength + Skills",ex:[
+  ["Dips","reps",4,6,10,"dips"],
+  ["Push-ups","reps",3,10,15,"pushups"],
+  ["Pike push-ups","reps",3,6,10,"pike"],
+  ["Wall handstand","sec",6,20,30,"handstand"],
+  ["Hanging knee raises","reps",3,8,12,"knee"]]},
+ {name:"Friday",desc:"Pull + Muscle-up",phase:"Strength + Skills",ex:[
+  ["Pull-ups","reps",5,3,5,"pull"],
+  ["Chest-to-bar attempts","reps",4,3,3,"ctb"],
+  ["Slow muscle-up negative","reps",3,2,2,"negative"],
+  ["Dips","reps",3,8,12,"dips"],
+  ["Hollow hold","sec",3,20,30,"hollow"]]},
+ {name:"Saturday",desc:"Skill Lab",phase:"Skills",ex:[
+  ["Handstand practice","min",1,5,10,"handstandPractice"],
+  ["L-sit progression","sec",5,10,20,"lsit"],
+  ["Frog stand","sec",5,15,30,"frog"],
+  ["Scapular pull-ups","reps",3,8,12,"scap"]]},
+ {name:"Sunday",desc:"Full Rest",phase:"Recovery",ex:[]}
+];
+
+const defaults={};
+days.forEach(d=>d.ex.forEach(e=>{if(!defaults[e[5]])defaults[e[5]]={name:e[0],unit:e[1],sets:e[2],min:e[3],max:e[4],target:e[4]};}));
+
+let state=JSON.parse(localStorage.getItem("caliquestV3")||"null")||{
+ xp:0,streak:0,lastDate:null,history:{}, exercises:JSON.parse(JSON.stringify(defaults))
+};
+
+function save(){localStorage.setItem("caliquestV3",JSON.stringify(state));}
+function today(){return new Date().toISOString().slice(0,10)}
+function dayIndex(){return new Date().getDay()===0?6:new Date().getDay()-1}
+function currentDay(){return days[dayIndex()]}
+function level(){return Math.floor(state.xp/250)+1}
+function targetFor(id){
+ let e=state.exercises[id]||defaults[id];
+ return Math.min(e.max,Math.max(e.min,e.target||e.max));
+}
+function fmt(id){
+ const e=state.exercises[id]||defaults[id], t=targetFor(id);
+ return e.sets+" × "+t+" "+e.unit;
+}
+function render(){
+ document.getElementById("streak").textContent=state.streak+" 🔥";
+ document.getElementById("xp").textContent=state.xp;
+ document.getElementById("levelPill").textContent="Level "+level();
+ document.getElementById("xpbar").style.width=((state.xp%250)/250*100)+"%";
+ const d=currentDay();
+ document.getElementById("todayTitle").textContent=d.name+" • "+d.desc;
+ document.getElementById("todayDesc").textContent=d.ex.length?d.ex.length+" exercises":"Recovery day";
+ document.getElementById("phase").textContent=d.phase;
+ document.getElementById("smartMessage").innerHTML=d.ex.length?
+   "Log what you actually complete. Your next target will adjust automatically.":"Take the day off and recover.";
+ renderWorkout();renderProgress();renderSkills();
+}
+function renderWorkout(){
+ const box=document.getElementById("workout"),d=currentDay();
+ if(!d.ex.length){box.innerHTML='<div class="notice">🌙 Full rest. Recovery is part of getting stronger.</div>';return}
+ box.innerHTML=d.ex.map((e,i)=>{
+   const id=e[5],x=state.exercises[id]||defaults[id], target=targetFor(id);
+   return `<div class="exercise">
+    <div class="row"><div><h3>${e[0]}</h3><div class="muted">${x.sets} sets • target ${target} ${e[1]}</div></div><span class="pill">${statusText(id)}</span></div>
+    <div class="grid">
+      <div><label>Sets completed</label><input id="sets-${i}" type="number" min="0" max="${x.sets}" value="${x.sets}"></div>
+      <div><label>Avg ${e[1]} / set</label><input id="val-${i}" type="number" min="0" step="1" placeholder="${target}"></div>
+    </div>
+    <button class="btn" style="width:100%;margin-top:9px" onclick="logExercise(${i})">Log performance</button>
+   </div>`;
+ }).join("");
+}
+function statusText(id){
+ const h=state.history[id]||[];
+ if(!h.length)return "new";
+ const last=h[h.length-1];
+ return last.result==="up"?"progressed":last.result==="repeat"?"repeat":"adjusted";
+}
+function logExercise(i){
+ const e=currentDay().ex[i],id=e[5],x=state.exercises[id]||defaults[id];
+ const sets=+document.getElementById("sets-"+i).value||0;
+ const val=+document.getElementById("val-"+i).value||0;
+ if(!sets||!val)return alert("Enter the sets completed and your average reps/seconds per set.");
+ const target=targetFor(id), ratio=val/target;
+ let result,change=0,message="";
+ if(sets>=x.sets && val>=target){
+   result="up";
+   change=1;
+   x.target=Math.min(x.max+3,Math.ceil(target+1));
+   state.xp+=25;
+   message="Nice — target reached. Next time the target increases.";
+ }else if(sets>=x.sets && val>=target*0.75){
+   result="repeat";
+   state.xp+=15;
+   message="Close. Repeat the same target next time.";
+ }else{
+   result="down";
+   change=-1;
+   x.target=Math.max(x.min,Math.max(x.min,target-1));
+   state.xp+=10;
+   message="That target was a little high today. The app adjusted it down.";
+ }
+ if(!state.history[id])state.history[id]=[];
+ state.history[id].push({date:today(),sets,val,target,result});
+ if(state.history[id].length>10)state.history[id].shift();
+ state.exercises[id]=x;
+ save();
+ updateStreak();
+ alert(message+"\\nNext target: "+x.sets+" × "+x.target+" "+x.unit);
+ render();
+}
+function updateStreak(){
+ const t=today();
+ if(state.lastDate===t)return;
+ if(!state.lastDate)state.streak=1;
+ else{
+  const a=new Date(state.lastDate),b=new Date(t),diff=Math.round((b-a)/86400000);
+  state.streak=diff===1?state.streak+1:1;
+ }
+ state.lastDate=t;save();
+}
+function renderProgress(){
+ const box=document.getElementById("progressList");
+ box.innerHTML=Object.entries(state.exercises).map(([id,x])=>{
+   const h=state.history[id]||[],last=h[h.length-1];
+   return `<div class="card"><div class="row"><h3>${x.name}</h3><span class="pill">${x.sets} × ${targetFor(id)} ${x.unit}</span></div>
+   <div class="progress"><div class="bar" style="width:${Math.min(100,targetFor(id)/Math.max(1,x.max)*100)}%"></div></div>
+   <div class="smalltext" style="margin-top:8px">${last?`Last: ${last.sets} × ${last.val} ${x.unit} • ${last.result==="up"?"target increased":last.result==="repeat"?"target repeated":"target adjusted"}`:"No performance logged yet."}</div></div>`;
+ }).join("");
+}
+const skills=[
+ ["Pull-up → Muscle-up",["Pull-up","Chest-to-bar","Explosive pull","Assisted muscle-up","Muscle-up"],"pull"],
+ ["L-sit → Handstand",["Tuck L-sit","One-leg L-sit","Full L-sit","L-sit leg lifts","L-sit to handstand"],"lsit"],
+ ["Handstand",["Wall handstand","Weight shifts","Freestanding attempts","10s freestanding","HSPU progression"],"handstand"],
+ ["Front lever",["Scapular pulls","Tuck lever","Advanced tuck","One-leg lever","Full lever"],"scap"],
+ ["Planche",["Frog stand","Planche lean","Tuck planche","Advanced tuck","Straddle planche"],"frog"]
+];
+function renderSkills(){
+ const box=document.getElementById("skillList");
+ box.innerHTML=skills.map(s=>{
+  const id=s[2],x=state.exercises[id]||defaults[id],p=Math.min(100,(targetFor(id)-x.min)/(Math.max(1,x.max-x.min))*100);
+  return `<div class="card"><div class="row"><h3>${s[0]}</h3><span class="pill">${Math.round(p)}%</span></div>
+  <div class="progress"><div class="bar" style="width:${p}%"></div></div>
+  <div class="smalltext" style="margin-top:10px">${s[1].map((v,i)=>`${i+1}. ${v}`).join("  •  ")}</div></div>`;
+ }).join("");
+}
+function show(id,btn){
+ document.querySelectorAll("main>section").forEach(x=>x.classList.add("hidden"));
+ document.getElementById(id).classList.remove("hidden");
+ document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+ btn.classList.add("active");
+}
+function resetData(){
+ if(confirm("Reset all workout history and progression?")){
+  localStorage.removeItem("caliquestV3");location.reload();
+ }
+}
+render();
+</script>
+</body>
+</html>
